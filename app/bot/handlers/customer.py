@@ -27,6 +27,14 @@ CATEGORY_EMOJIS = {
     "drinks": "☕",
 }
 
+CATEGORY_BULLETS = {
+    "breads": "🥖",
+    "cakes": "🎂",
+    "pastries": "🥐",
+    "cookies": "🍪",
+    "drinks": "☕",
+}
+
 
 # ── Keyboards ──────────────────────────────────────────────────────────────────
 
@@ -110,22 +118,34 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 async def _show_category(query, category: str) -> None:
     items = await _menu_repo.get_items_by_category(category)
     emoji = CATEGORY_EMOJIS.get(category, "🍽️")
+    bullet = CATEGORY_BULLETS.get(category, "•")
 
     if not items:
         text = f"{emoji} No <b>{category.title()}</b> available today. Check back soon!"
         await query.edit_message_text(text, parse_mode=ParseMode.HTML, reply_markup=_back_keyboard())
         return
 
-    lines = [f"{emoji} <b>Our {category.title()}</b>\n"]
-    for item in items:
-        lines.append(f"<b>{item['name']}</b>  ·  ₹{item['price']:.0f}")
-        lines.append(f"<i>{item['description']}</i>")
+    lines = [
+        f"{emoji} <b>── OUR {category.upper()} ──</b>",
+        "",
+    ]
+
+    for i, item in enumerate(items):
+        price_tag = f"₹{item['price']:.0f}"
+        lines.append(f"{bullet} <b>{item['name']}</b>")
+        lines.append(f"┃  💰 <b>{price_tag}</b>")
+        lines.append(f"┃  {item['description']}")
         if item.get("customizations"):
-            opts = " · ".join(item["customizations"])
-            lines.append(f"<code>Options: {opts}</code>")
+            opts = "  ·  ".join(c.title() for c in item["customizations"])
+            lines.append(f"┃  🔧 <i>{opts}</i>")
+        if i < len(items) - 1:
+            lines.append("┃")
+            lines.append("┠─────────────────────")
         lines.append("")
 
-    lines.append("💬 Ask me about any item or say <b>add [item] to cart</b> to order!")
+    lines.append("💬 <i>Type the item name to ask about it, or</i>")
+    lines.append("🛒 <i>say <b>add [item name]</b> to put it in your cart</i>")
+
     await query.edit_message_text(
         "\n".join(lines).strip(),
         parse_mode=ParseMode.HTML,
