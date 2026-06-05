@@ -1,4 +1,5 @@
 import os
+import warnings
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -8,6 +9,9 @@ from app.api.routes.webhook import router as webhook_router
 from app.bot.setup import setup_bot, shutdown_bot
 from app.config import get_settings
 from app.database.connection import close_db, connect_db
+
+
+warnings.filterwarnings("ignore", category=UserWarning, module="google.adk")
 
 
 @asynccontextmanager
