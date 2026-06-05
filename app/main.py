@@ -1,3 +1,4 @@
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -5,11 +6,14 @@ from fastapi import FastAPI
 from app.api.routes.health import router as health_router
 from app.api.routes.webhook import router as webhook_router
 from app.bot.setup import setup_bot, shutdown_bot
+from app.config import get_settings
 from app.database.connection import close_db, connect_db
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # ADK uses google-genai internally which reads GOOGLE_API_KEY from the environment
+    os.environ.setdefault("GOOGLE_API_KEY", get_settings().gemini_api_key)
     await connect_db()
     await setup_bot()
     yield
