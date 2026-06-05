@@ -8,7 +8,7 @@ from app.tools.menu_tools import (
 )
 
 menu_agent = Agent(
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash-lite",
     name="menu_agent",
     description="Helps customers browse the bakery menu, search for items, and get item details.",
     instruction="""
