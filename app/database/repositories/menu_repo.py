@@ -54,7 +54,8 @@ class MenuRepository:
 
     async def get_item_by_name(self, name: str) -> dict | None:
         item = await self.collection.find_one(
-            {"name": {"$regex": f"^{name}$", "$options": "i"}, "is_available": True}
+            {"name": name, "is_available": True},
+            collation={"locale": "en", "strength": 2},  # case-insensitive exact match
         )
         if item:
             item["_id"] = str(item["_id"])
