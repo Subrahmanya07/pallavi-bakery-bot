@@ -3,7 +3,7 @@ from google.adk.agents import Agent
 from app.agents.menu_agent import menu_agent
 
 orchestrator = Agent(
-    model="gemini-2.5-flash-lite",
+    model="gemini-3.1-flash-lite",
     name="orchestrator",
     description="Root agent that routes customer messages to the right sub-agent.",
     instruction="""
