@@ -23,7 +23,7 @@ class MenuRepository:
     async def get_items_by_category(self, category: str) -> list[dict]:
         cursor = self.collection.find(
             {"category": category.lower(), "is_available": True},
-            {"_id": 1, "name": 1, "price": 1, "description": 1, "customizations": 1},
+            {"_id": 1, "name": 1, "slug": 1, "price": 1, "description": 1, "customizations": 1},
         )
         items = await cursor.to_list(None)
         for item in items:

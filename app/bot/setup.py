@@ -19,6 +19,7 @@ async def setup_bot() -> None:
 
     from app.bot.handlers.customer import (
         handle_callback,
+        handle_cart_command,
         handle_menu_command,
         handle_message,
         handle_start,
@@ -26,6 +27,7 @@ async def setup_bot() -> None:
 
     application.add_handler(CommandHandler("start", handle_start))
     application.add_handler(CommandHandler("menu", handle_menu_command))
+    application.add_handler(CommandHandler("cart", handle_cart_command))
     application.add_handler(CallbackQueryHandler(handle_callback))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 

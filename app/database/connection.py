@@ -11,6 +11,19 @@ async def connect_db() -> None:
     _client = AsyncIOMotorClient(settings.mongodb_uri)
     await _client.admin.command("ping")
     print("MongoDB connected.")
+    await _setup_indexes()
+
+
+async def _setup_indexes() -> None:
+    from app.database.repositories.menu_repo import MenuRepository
+    from app.database.repositories.order_repo import OrderRepository
+    from app.database.repositories.session_repo import SessionRepository
+    from app.database.repositories.user_repo import UserRepository
+
+    await MenuRepository().setup_indexes()
+    await OrderRepository().setup_indexes()
+    await SessionRepository().setup_indexes()
+    await UserRepository().setup_indexes()
 
 
 async def close_db() -> None:
