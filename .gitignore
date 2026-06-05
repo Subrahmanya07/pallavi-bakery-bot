@@ -1,0 +1,23 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Environment secrets — NEVER commit
+.env
+
+# Docs build artifacts
+docs/superpowers/
+
+# Editor
+.idea/
+.vscode/
+
+# OS
+.DS_Store
