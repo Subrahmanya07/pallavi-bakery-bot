@@ -43,9 +43,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             session_id=telegram_id,
             new_message=message,
         ):
+            # Collect the last final response — no break so the generator
+            # drains fully and avoids OpenTelemetry context cleanup errors
             if event.is_final_response() and event.content and event.content.parts:
                 response_text = event.content.parts[0].text
-                break
 
         if response_text:
             await update.message.reply_text(response_text)
