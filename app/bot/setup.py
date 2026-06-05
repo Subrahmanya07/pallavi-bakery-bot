@@ -1,4 +1,4 @@
-from telegram.ext import Application, MessageHandler, filters
+from telegram.ext import Application, CallbackQueryHandler, CommandHandler, MessageHandler, filters
 
 from app.config import get_settings
 
@@ -17,7 +17,16 @@ async def setup_bot() -> None:
 
     application = Application.builder().token(settings.telegram_token).build()
 
-    from app.bot.handlers.customer import handle_message
+    from app.bot.handlers.customer import (
+        handle_callback,
+        handle_menu_command,
+        handle_message,
+        handle_start,
+    )
+
+    application.add_handler(CommandHandler("start", handle_start))
+    application.add_handler(CommandHandler("menu", handle_menu_command))
+    application.add_handler(CallbackQueryHandler(handle_callback))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
     await application.initialize()
@@ -31,8 +40,8 @@ async def setup_bot() -> None:
     else:
         await application.updater.start_polling()
 
-    _application = application
-    print(f"Bot started in {'webhook' if settings.env == 'production' else 'polling'} mode.")
+    mode = "webhook" if settings.env == "production" else "polling"
+    print(f"Bot started in {mode} mode.")
 
 
 async def shutdown_bot() -> None:
