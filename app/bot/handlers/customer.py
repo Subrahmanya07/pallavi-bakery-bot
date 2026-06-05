@@ -1,5 +1,6 @@
 from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
+from google.genai.errors import ServerError
 from google.genai.types import Content, Part
 from telegram import Update
 from telegram.ext import ContextTypes
@@ -51,6 +52,15 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         else:
             await update.message.reply_text(
                 "Hmm, I didn't get a response. Please try again!"
+            )
+    except ServerError as e:
+        if e.code == 503:
+            await update.message.reply_text(
+                "The AI service is temporarily busy. Please try again in a few seconds!"
+            )
+        else:
+            await update.message.reply_text(
+                "Sorry, something went wrong. Please try again in a moment."
             )
     except Exception:
         await update.message.reply_text(
