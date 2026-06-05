@@ -88,13 +88,19 @@ def _format_cart(cart: list[dict]) -> tuple[str, float]:
     return "\n".join(lines), total
 
 
-async def _ensure_adk_session(telegram_id: str) -> None:
+async def _ensure_adk_session(telegram_id: int) -> None:
+    tid_str = str(telegram_id)
     session = await _session_service.get_session(
-        app_name=APP_NAME, user_id=telegram_id, session_id=telegram_id
+        app_name=APP_NAME, user_id=tid_str, session_id=tid_str
     )
     if session is None:
+        # telegram_id stored in state as int — tools read from ToolContext.state,
+        # never from LLM-supplied parameters, preventing IDOR attacks.
         await _session_service.create_session(
-            app_name=APP_NAME, user_id=telegram_id, session_id=telegram_id
+            app_name=APP_NAME,
+            user_id=tid_str,
+            session_id=tid_str,
+            state={"telegram_id": telegram_id},
         )
 
 
@@ -261,7 +267,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     user_text = update.message.text.strip()
 
     await _user_repo.upsert_user(update.effective_user)
-    await _ensure_adk_session(telegram_id_str)
+    await _ensure_adk_session(telegram_id)
 
     message = Content(role="user", parts=[Part(text=user_text)])
 

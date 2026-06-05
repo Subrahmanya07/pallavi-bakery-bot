@@ -1,3 +1,5 @@
+from google.adk.tools import ToolContext
+
 from app.database.repositories.menu_repo import MenuRepository
 from app.database.repositories.order_repo import OrderRepository
 from app.database.repositories.session_repo import SessionRepository
@@ -10,7 +12,17 @@ _session_repo = SessionRepository()
 _user_repo = UserRepository()
 
 
-async def view_cart(telegram_id: int) -> str:
+def _get_telegram_id(tool_context: ToolContext) -> int | None:
+    """Read the server-set telegram_id from session state — never from LLM parameters."""
+    tid = tool_context.state.get("telegram_id")
+    return int(tid) if tid else None
+
+
+async def view_cart(tool_context: ToolContext) -> str:
+    telegram_id = _get_telegram_id(tool_context)
+    if not telegram_id:
+        return "Session error. Please send /start to restart."
+
     cart = await _session_repo.get_cart(telegram_id)
     if not cart:
         return "Your cart is empty. Browse the menu and add items!"
@@ -28,11 +40,15 @@ async def view_cart(telegram_id: int) -> str:
 
 
 async def add_item_to_cart(
-    telegram_id: int,
     item_name: str,
     quantity: int = 1,
     customization: str = "",
+    tool_context: ToolContext = None,
 ) -> str:
+    telegram_id = _get_telegram_id(tool_context)
+    if not telegram_id:
+        return "Session error. Please send /start to restart."
+
     item = await _menu_repo.get_item_by_name(item_name)
     if not item:
         return f"Sorry, I couldn't find '{item_name}' on our menu. Check the spelling or browse the menu first."
@@ -57,7 +73,14 @@ async def add_item_to_cart(
     )
 
 
-async def remove_item_from_cart(telegram_id: int, item_name: str) -> str:
+async def remove_item_from_cart(
+    item_name: str,
+    tool_context: ToolContext = None,
+) -> str:
+    telegram_id = _get_telegram_id(tool_context)
+    if not telegram_id:
+        return "Session error. Please send /start to restart."
+
     cart = await _session_repo.remove_from_cart(telegram_id, item_name)
     if not cart:
         return "Your cart is now empty."
@@ -65,12 +88,24 @@ async def remove_item_from_cart(telegram_id: int, item_name: str) -> str:
     return f"Removed {item_name} from your cart.\n💰 New total: ₹{total:.0f}"
 
 
-async def clear_cart(telegram_id: int) -> str:
+async def clear_cart(tool_context: ToolContext) -> str:
+    telegram_id = _get_telegram_id(tool_context)
+    if not telegram_id:
+        return "Session error. Please send /start to restart."
+
     await _session_repo.clear_cart(telegram_id)
     return "Your cart has been cleared."
 
 
-async def place_order(telegram_id: int, pickup_time: str = "", notes: str = "") -> str:
+async def place_order(
+    pickup_time: str = "",
+    notes: str = "",
+    tool_context: ToolContext = None,
+) -> str:
+    telegram_id = _get_telegram_id(tool_context)
+    if not telegram_id:
+        return "Session error. Please send /start to restart."
+
     cart = await _session_repo.get_cart(telegram_id)
     if not cart:
         return "Your cart is empty. Add items before placing an order."
@@ -109,6 +144,15 @@ async def place_order(telegram_id: int, pickup_time: str = "", notes: str = "") 
     )
 
 
-async def cancel_order(telegram_id: int, order_number: str) -> str:
-    success, message = await _order_repo.cancel_order(order_number.strip().upper(), telegram_id)
+async def cancel_order(
+    order_number: str,
+    tool_context: ToolContext = None,
+) -> str:
+    telegram_id = _get_telegram_id(tool_context)
+    if not telegram_id:
+        return "Session error. Please send /start to restart."
+
+    success, message = await _order_repo.cancel_order(
+        order_number.strip().upper(), telegram_id
+    )
     return message
