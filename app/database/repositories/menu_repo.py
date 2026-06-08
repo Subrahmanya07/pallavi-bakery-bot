@@ -61,6 +61,20 @@ class MenuRepository:
             item["_id"] = str(item["_id"])
         return item
 
+    async def get_all_items(self) -> list[dict]:
+        cursor = self.collection.find({}, sort=[("category", 1), ("name", 1)])
+        items = await cursor.to_list(None)
+        for item in items:
+            item["_id"] = str(item["_id"])
+        return items
+
+    async def soft_delete_item(self, item_id: str) -> bool:
+        result = await self.collection.update_one(
+            {"_id": ObjectId(item_id)},
+            {"$set": {"is_available": False, "updated_at": datetime.now(timezone.utc)}},
+        )
+        return result.modified_count > 0
+
     async def create_item(self, item: MenuItemCreate) -> str:
         now = datetime.now(timezone.utc)
         doc = item.model_dump()

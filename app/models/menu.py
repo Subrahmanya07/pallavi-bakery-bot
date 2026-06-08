@@ -38,3 +38,13 @@ class MenuItemCreate(BaseModel):
     is_available: bool = True
     image_url: str | None = None
     customizations: list[str] = []
+
+
+class MenuItemUpdate(BaseModel):
+    name: str | None = None
+    category: Category | None = None
+    description: str | None = None
+    price: float | None = None
+    is_available: bool | None = None
+    image_url: str | None = None
+    customizations: list[str] | None = None

@@ -1,4 +1,6 @@
-from datetime import datetime, timezone
+from datetime import date as date_type, datetime, timedelta, timezone
+
+from bson import ObjectId
 
 from app.database.connection import get_database
 from app.models.order import OrderCreate, OrderStatus
@@ -45,6 +47,37 @@ class OrderRepository:
         if order:
             order["_id"] = str(order["_id"])
         return order
+
+    async def get_by_id(self, order_id: str) -> dict | None:
+        order = await self.collection.find_one({"_id": ObjectId(order_id)})
+        if order:
+            order["_id"] = str(order["_id"])
+        return order
+
+    async def get_pending_orders(self) -> list[dict]:
+        cursor = self.collection.find(
+            {"status": {"$in": [OrderStatus.PENDING, OrderStatus.CONFIRMED]}},
+            sort=[("created_at", 1)],
+        )
+        orders = await cursor.to_list(None)
+        for o in orders:
+            o["_id"] = str(o["_id"])
+        return orders
+
+    async def list_orders(
+        self, status: str | None = None, order_date: date_type | None = None
+    ) -> list[dict]:
+        query = {}
+        if status:
+            query["status"] = status.upper()
+        if order_date:
+            start = datetime(order_date.year, order_date.month, order_date.day, tzinfo=timezone.utc)
+            query["created_at"] = {"$gte": start, "$lt": start + timedelta(days=1)}
+        cursor = self.collection.find(query, sort=[("created_at", -1)])
+        orders = await cursor.to_list(None)
+        for o in orders:
+            o["_id"] = str(o["_id"])
+        return orders
 
     async def get_by_user(self, telegram_id: int, limit: int = 5) -> list[dict]:
         cursor = self.collection.find(
