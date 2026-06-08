@@ -13,6 +13,8 @@ def get_application() -> Application:
 
 async def setup_bot() -> None:
     global _application
+    if _application is not None:
+        return
     settings = get_settings()
 
     application = Application.builder().token(settings.telegram_token).build()
@@ -62,15 +64,14 @@ async def setup_bot() -> None:
 
     await application.initialize()
     await application.start()
+    _application = application
 
-    if settings.env == "production" and settings.webhook_url:
-        await application.bot.set_webhook(
-            url=f"{settings.webhook_url}/webhook",
-            secret_token=settings.webhook_secret,
-        )
-    else:
+    if settings.env != "production":
         await application.updater.start_polling()
 
+    # In production the webhook is registered once via the `set_webhook` script
+    # (see scripts/set_webhook.py) — calling Telegram's setWebhook on every cold
+    # start would be a wasted API round-trip on a serverless deployment.
     mode = "webhook" if settings.env == "production" else "polling"
     print(f"Bot started in {mode} mode.")
 

@@ -7,6 +7,8 @@ _client: AsyncIOMotorClient | None = None
 
 async def connect_db() -> None:
     global _client
+    if _client is not None:
+        return
     settings = get_settings()
     _client = AsyncIOMotorClient(settings.mongodb_uri)
     await _client.admin.command("ping")
