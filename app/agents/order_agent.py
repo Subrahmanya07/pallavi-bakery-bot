@@ -4,8 +4,10 @@ from app.tools.order_tools import (
     add_item_to_cart,
     cancel_order,
     clear_cart,
+    modify_order,
     place_order,
     remove_item_from_cart,
+    reorder_last_order,
     view_cart,
 )
 
@@ -25,6 +27,11 @@ Rules:
    quantity=2, customization="with jam".
 5. After placing an order, always share the order number with the customer.
 6. For cancellations, ask for the order number if not provided.
+7. If the customer says "order the same as last time" or "reorder", call reorder_last_order —
+   it adds the items from their most recent order straight into the cart.
+8. If the customer wants to change the pickup time or notes on an order they just placed,
+   call modify_order with the order number — this only works while the order is still PENDING.
+   If it fails because the order has already moved past PENDING, explain that politely.
 
 Tone: friendly, helpful, enthusiastic about the food.
 """,
@@ -35,5 +42,7 @@ Tone: friendly, helpful, enthusiastic about the food.
         clear_cart,
         place_order,
         cancel_order,
+        reorder_last_order,
+        modify_order,
     ],
 )

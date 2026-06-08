@@ -156,3 +156,63 @@ async def cancel_order(
         order_number.strip().upper(), telegram_id
     )
     return message
+
+
+async def reorder_last_order(tool_context: ToolContext = None) -> str:
+    telegram_id = _get_telegram_id(tool_context)
+    if not telegram_id:
+        return "Session error. Please send /start to restart."
+
+    orders = await _order_repo.get_by_user(telegram_id, limit=1)
+    if not orders:
+        return "You haven't placed any orders yet — browse the menu to get started!"
+
+    last = orders[0]
+    added, unavailable = [], []
+    for line in last["items"]:
+        item = await _menu_repo.get_item_by_name(line["name"])
+        if not item or not item.get("is_available", True):
+            unavailable.append(line["name"])
+            continue
+        cart_item = {
+            "menu_item_id": item["_id"],
+            "name": item["name"],
+            "quantity": line["quantity"],
+            "unit_price": item["price"],
+            "customization": line.get("customization"),
+        }
+        await _session_repo.add_to_cart(telegram_id, cart_item)
+        added.append(item["name"])
+
+    if not added:
+        return "Sorry, none of the items from your last order are available right now."
+
+    cart = await _session_repo.get_cart(telegram_id)
+    total = sum(i["quantity"] * i["unit_price"] for i in cart)
+    msg = (
+        f"✅ Added {', '.join(added)} to your cart from order {last['order_number']}!\n"
+        f"Cart total: ₹{total:.0f}."
+    )
+    if unavailable:
+        msg += f"\n⚠️ Not available right now: {', '.join(unavailable)}"
+    msg += "\n\nSay 'show my cart' to review or 'place order' to checkout."
+    return msg
+
+
+async def modify_order(
+    order_number: str,
+    pickup_time: str = "",
+    notes: str = "",
+    tool_context: ToolContext = None,
+) -> str:
+    telegram_id = _get_telegram_id(tool_context)
+    if not telegram_id:
+        return "Session error. Please send /start to restart."
+
+    success, message = await _order_repo.update_order_details(
+        order_number.strip().upper(),
+        telegram_id,
+        pickup_time=(pickup_time.strip() or None) if pickup_time else None,
+        notes=(notes.strip() or None) if notes else None,
+    )
+    return message

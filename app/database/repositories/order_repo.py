@@ -73,6 +73,33 @@ class OrderRepository:
         )
         return result.modified_count > 0
 
+    async def update_order_details(
+        self,
+        order_number: str,
+        telegram_id: int,
+        pickup_time: str | None = None,
+        notes: str | None = None,
+    ) -> tuple[bool, str]:
+        order = await self.get_by_number(order_number)
+        if not order:
+            return False, "Order not found."
+        if order["telegram_user_id"] != telegram_id:
+            return False, "Order not found."
+        if order["status"] != OrderStatus.PENDING:
+            return False, f"Can't modify — order is already {order['status'].lower()}."
+
+        updates = {}
+        if pickup_time is not None:
+            updates["pickup_time"] = pickup_time
+        if notes is not None:
+            updates["notes"] = notes
+        if not updates:
+            return False, "Nothing to update — tell me what you'd like to change."
+
+        updates["updated_at"] = datetime.now(timezone.utc)
+        await self.collection.update_one({"order_number": order_number}, {"$set": updates})
+        return True, "Order updated successfully."
+
     async def cancel_order(self, order_number: str, telegram_id: int) -> tuple[bool, str]:
         order = await self.get_by_number(order_number)
         if not order:

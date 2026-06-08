@@ -8,12 +8,14 @@ from telegram.ext import ContextTypes
 
 from app.agents.orchestrator import orchestrator
 from app.database.repositories.menu_repo import MenuRepository
+from app.database.repositories.order_repo import OrderRepository
 from app.database.repositories.session_repo import SessionRepository
 from app.database.repositories.user_repo import UserRepository
 
 _session_service = InMemorySessionService()
 _runner = Runner(agent=orchestrator, app_name="bakery_bot", session_service=_session_service)
 _menu_repo = MenuRepository()
+_order_repo = OrderRepository()
 _session_repo = SessionRepository()
 _user_repo = UserRepository()
 
@@ -143,6 +145,28 @@ async def handle_cart_command(update: Update, context: ContextTypes.DEFAULT_TYPE
     await update.message.reply_text(
         text, parse_mode=ParseMode.HTML, reply_markup=_cart_keyboard(bool(cart))
     )
+
+
+async def handle_track_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    telegram_id = update.effective_user.id
+    orders = await _order_repo.get_by_user(telegram_id, limit=5)
+    if not orders:
+        text = (
+            "📦 <b>No orders yet.</b>\n\n"
+            "Browse our menu and place your first order!"
+        )
+    else:
+        lines = ["📦 <b>YOUR RECENT ORDERS</b>\n"]
+        for o in orders:
+            summary = ", ".join(f"{i['name']} ×{i['quantity']}" for i in o["items"])
+            lines.append(
+                f"• <b>{o['order_number']}</b>  ·  {o['created_at']:%Y-%m-%d}\n"
+                f"  {summary}\n"
+                f"  ₹{o['total_amount']:.0f}  ·  <b>{o['status']}</b>"
+            )
+        lines.append("\n<i>Ask me \"what's the status of ORD-...\" for full details.</i>")
+        text = "\n".join(lines)
+    await update.message.reply_text(text, parse_mode=ParseMode.HTML)
 
 
 # ── Callback query handler ─────────────────────────────────────────────────────
