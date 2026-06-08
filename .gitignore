@@ -21,3 +21,6 @@ docs/superpowers/
 
 # OS
 .DS_Store
+
+# Browser-testing debug artifacts
+.playwright-mcp/

@@ -22,10 +22,15 @@ class Settings(BaseSettings):
     # App
     admin_api_key: str
     env: str = "development"
+    dashboard_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
 
     def get_admin_ids(self) -> list[int]:
         """Return parsed list of admin Telegram IDs."""
         return [int(x.strip()) for x in self.admin_ids.split(",") if x.strip()]
+
+    def get_dashboard_origins(self) -> list[str]:
+        """Return parsed list of allowed CORS origins for the admin dashboard."""
+        return [x.strip() for x in self.dashboard_origins.split(",") if x.strip()]
 
 
 @lru_cache

@@ -1,0 +1,91 @@
+@import "tailwindcss";
+
+:root {
+  --bg:          #0c0b09;
+  --surface:     #131110;
+  --surface-2:   #1c1916;
+  --surface-3:   #242018;
+  --border:      rgba(210, 150, 60, 0.10);
+  --border-glow: rgba(210, 150, 60, 0.28);
+  --primary:     #e8a045;
+  --primary-dim: rgba(232, 160, 69, 0.12);
+  --text:        #f5efe4;
+  --text-muted:  #7a7060;
+  --text-faint:  #3a342c;
+}
+
+@theme inline {
+  --color-background: var(--bg);
+  --color-foreground: var(--text);
+  --font-sans: var(--font-geist-sans);
+  --font-serif: var(--font-playfair);
+}
+
+html { color-scheme: dark; scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Warm radial backdrop */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(ellipse 70% 50% at 15% 10%,  rgba(180, 90, 20, 0.07) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 85% 85%,  rgba(232, 160, 69, 0.05) 0%, transparent 60%),
+    radial-gradient(ellipse 80% 60% at 50% 100%, rgba(140, 70, 20, 0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* Top accent line */
+body::after {
+  content: "";
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(232, 160, 69, 0.5) 50%, transparent 100%);
+  z-index: 100;
+  pointer-events: none;
+}
+
+::selection { background: rgba(232,160,69,0.22); color: #fff; }
+
+::-webkit-scrollbar       { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(232,160,69,0.2); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(232,160,69,0.4); }
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Serif headings utility */
+.font-serif { font-family: var(--font-playfair), Georgia, serif; }
+
+/* Glowing card border on hover */
+.card-glow { transition: box-shadow 0.3s, border-color 0.3s; }
+.card-glow:hover {
+  box-shadow: 0 0 0 1px rgba(232,160,69,0.18), 0 8px 32px rgba(0,0,0,0.4);
+  border-color: rgba(232,160,69,0.22) !important;
+}
+
+/* Live pulse dot */
+@keyframes pulse-ring {
+  0%   { transform: scale(1);   opacity: 1; }
+  70%  { transform: scale(2.2); opacity: 0; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+.live-dot::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: #22c55e;
+  animation: pulse-ring 1.8s ease-out infinite;
+}
