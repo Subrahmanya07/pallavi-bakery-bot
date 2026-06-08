@@ -48,17 +48,36 @@ def _category_keyboard() -> InlineKeyboardMarkup:
     ])
 
 
-def _items_keyboard(items: list[dict]) -> InlineKeyboardMarkup:
+def _items_keyboard(items: list[dict], category: str) -> InlineKeyboardMarkup:
     rows = []
     pairs = [items[i:i + 2] for i in range(0, len(items), 2)]
     for pair in pairs:
         rows.append([
-            InlineKeyboardButton(f"🛒 {item['name']}", callback_data=f"cart:add:{item['slug']}")
+            InlineKeyboardButton(item["name"], callback_data=f"item:{category}:{item['slug']}")
             for item in pair
         ])
     rows.append([
-        InlineKeyboardButton("🛒 View Cart",     callback_data="cart:view"),
-        InlineKeyboardButton("← Categories",    callback_data="menu:categories"),
+        InlineKeyboardButton("← Categories", callback_data="menu:categories"),
+        InlineKeyboardButton("🛒 Cart",       callback_data="cart:view"),
+    ])
+    return InlineKeyboardMarkup(rows)
+
+
+def _item_detail_keyboard(category: str, item: dict) -> InlineKeyboardMarkup:
+    rows = []
+    customizations = item.get("customizations") or []
+    if customizations:
+        for i, custom in enumerate(customizations):
+            rows.append([
+                InlineKeyboardButton(f"➕ Add — {custom.title()}", callback_data=f"add:{category}:{item['slug']}:{i}")
+            ])
+    else:
+        rows.append([
+            InlineKeyboardButton(f"➕ Add to Cart — ₹{item['price']:.0f}", callback_data=f"add:{category}:{item['slug']}:_")
+        ])
+    rows.append([
+        InlineKeyboardButton(f"← Back to {category.title()}", callback_data=f"menu:{category}"),
+        InlineKeyboardButton("🛒 Cart", callback_data="cart:view"),
     ])
     return InlineKeyboardMarkup(rows)
 
@@ -190,26 +209,38 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         await _show_category(query, data.split(":")[1])
         return
 
-    # ── Cart actions ──
-    if data.startswith("cart:add:"):
-        slug = data.split("cart:add:")[1]
+    # ── Item detail ──
+    if data.startswith("item:"):
+        _, category, slug = data.split(":", 2)
+        await _show_item_detail(query, category, slug)
+        return
+
+    # ── Add a specific variant to cart ──
+    if data.startswith("add:"):
+        _, category, slug, idx = data.split(":", 3)
         item = await _menu_repo.get_item_by_slug(slug)
-        if not item:
-            await query.answer("Item not found!", show_alert=True)
+        if not item or not item.get("is_available", True):
+            await query.answer("Sorry, that item is no longer available!", show_alert=True)
             return
+
+        customizations = item.get("customizations") or []
+        customization = customizations[int(idx)] if idx.isdigit() and int(idx) < len(customizations) else None
+
         cart_item = {
             "menu_item_id": item["_id"],
             "name": item["name"],
             "quantity": 1,
             "unit_price": item["price"],
-            "customization": None,
+            "customization": customization,
         }
         cart = await _session_repo.add_to_cart(telegram_id, cart_item)
         total = sum(i["quantity"] * i["unit_price"] for i in cart)
         count = sum(i["quantity"] for i in cart)
-        await query.answer(f"✅ Added! Cart: {count} item(s) · ₹{total:.0f}", show_alert=False)
+        label = f"{item['name']} ({customization})" if customization else item["name"]
+        await query.answer(f"✅ Added {label}! Cart: {count} item(s) · ₹{total:.0f}", show_alert=False)
         return
 
+    # ── Cart actions ──
     if data == "cart:view":
         cart = await _session_repo.get_cart(telegram_id)
         if not cart:
@@ -272,11 +303,37 @@ async def _show_category(query, category: str) -> None:
             lines.append("┠─────────────────────")
         lines.append("")
 
-    lines.append("👇 <i>Tap an item below to add it to your cart</i>")
+    lines.append("👇 <i>Tap an item below to see details and add it to your cart</i>")
     await query.edit_message_text(
         "\n".join(lines).strip(),
         parse_mode=ParseMode.HTML,
-        reply_markup=_items_keyboard(items),
+        reply_markup=_items_keyboard(items, category),
+    )
+
+
+async def _show_item_detail(query, category: str, slug: str) -> None:
+    item = await _menu_repo.get_item_by_slug(slug)
+    if not item or not item.get("is_available", True):
+        await query.edit_message_text(
+            "Sorry, that item is no longer available.",
+            reply_markup=_cart_keyboard(False),
+        )
+        return
+
+    bullet = CATEGORY_BULLETS.get(category, "•")
+    lines = [
+        f"{bullet} <b>{item['name']}</b>  —  <b>₹{item['price']:.0f}</b>",
+        "",
+        item["description"],
+        "",
+        "👇 <i>Pick an option to add it to your cart</i>"
+        if item.get("customizations")
+        else "👇 <i>Tap below to add it to your cart</i>",
+    ]
+    await query.edit_message_text(
+        "\n".join(lines),
+        parse_mode=ParseMode.HTML,
+        reply_markup=_item_detail_keyboard(category, item),
     )
 
 
