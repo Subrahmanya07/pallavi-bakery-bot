@@ -3,8 +3,11 @@
 import { motion } from "framer-motion";
 import { QRCodeSVG } from "qrcode.react";
 import { ChefHat, MessageCircle, Smartphone, Globe, ShoppingBag } from "lucide-react";
+import { useCallback } from "react";
 
 const BOT_URL = "https://t.me/pallavi_bakery_order_bot";
+const BOT_WEB_URL = "https://web.telegram.org/k/#@pallavi_bakery_order_bot";
+const BOT_APP_URL = "tg://resolve?domain=pallavi_bakery_order_bot";
 
 const FEATURES = [
   { icon: ShoppingBag, label: "Browse menu" },
@@ -13,6 +16,18 @@ const FEATURES = [
 ];
 
 export default function LandingPage() {
+  const openBot = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    // Try native app first; fall back to Telegram Web if app doesn't open in 1.5s
+    window.location.href = BOT_APP_URL;
+    const fallback = setTimeout(() => {
+      window.location.href = BOT_WEB_URL;
+    }, 1500);
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) clearTimeout(fallback);
+    }, { once: true });
+  }, []);
+
   return (
     <div
       className="min-h-screen flex flex-col items-center justify-center p-6"
@@ -95,23 +110,22 @@ export default function LandingPage() {
 
         {/* CTA */}
         <div className="px-6 py-6">
-          <a
-            href={BOT_URL}
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            onClick={openBot}
             className="flex items-center justify-center gap-3 w-full rounded-2xl text-white font-semibold text-sm active:scale-95 transition-transform"
             style={{
               background: "linear-gradient(135deg, #e8a045 0%, #c4622d 100%)",
               boxShadow: "0 6px 24px rgba(232,160,69,0.35)",
               padding: "14px 0",
-              textDecoration: "none",
+              border: "none",
+              cursor: "pointer",
             }}
           >
             <MessageCircle className="w-5 h-5" />
             Start ordering on Telegram
-          </a>
+          </button>
           <p className="text-center text-[11px] mt-3" style={{ color: "#3a342c" }}>
-            No app? No problem — opens in your browser
+            App installed? Opens instantly · No app? Opens in browser
           </p>
         </div>
       </motion.div>
