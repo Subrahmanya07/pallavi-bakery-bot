@@ -97,15 +97,12 @@ async def clear_cart(tool_context: ToolContext) -> str:
     return "Your cart has been cleared."
 
 
-async def place_order(
+async def place_order_for_user(
+    telegram_id: int,
     pickup_time: str = "",
     notes: str = "",
-    tool_context: ToolContext = None,
 ) -> str:
-    telegram_id = _get_telegram_id(tool_context)
-    if not telegram_id:
-        return "Session error. Please send /start to restart."
-
+    """Core order placement logic — callable from both the ADK tool and button handlers."""
     cart = await _session_repo.get_cart(telegram_id)
     if not cart:
         return "Your cart is empty. Add items before placing an order."
@@ -142,6 +139,17 @@ async def place_order(
         f"We'll confirm your order shortly. "
         f"Use your order number to track status anytime!"
     )
+
+
+async def place_order(
+    pickup_time: str = "",
+    notes: str = "",
+    tool_context: ToolContext = None,
+) -> str:
+    telegram_id = _get_telegram_id(tool_context)
+    if not telegram_id:
+        return "Session error. Please send /start to restart."
+    return await place_order_for_user(telegram_id, pickup_time, notes)
 
 
 async def cancel_order(

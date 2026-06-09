@@ -11,6 +11,7 @@ from app.database.repositories.menu_repo import MenuRepository
 from app.database.repositories.order_repo import OrderRepository
 from app.database.repositories.session_repo import SessionRepository
 from app.database.repositories.user_repo import UserRepository
+from app.tools.order_tools import place_order_for_user
 
 _session_service = InMemorySessionService()
 _runner = Runner(agent=orchestrator, app_name="bakery_bot", session_service=_session_service)
@@ -93,6 +94,17 @@ def _cart_keyboard(has_items: bool) -> InlineKeyboardMarkup:
             InlineKeyboardButton("🗑️ Clear Cart",  callback_data="cart:clear"),
             InlineKeyboardButton("🍽️ Add More",    callback_data="menu:categories"),
         ],
+    ])
+
+
+def _pickup_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("⚡ ASAP",    callback_data="order:pickup:asap"),
+            InlineKeyboardButton("🕐 30 min",  callback_data="order:pickup:30min"),
+            InlineKeyboardButton("🕑 1 hour",  callback_data="order:pickup:1hour"),
+        ],
+        [InlineKeyboardButton("🛒 Back to Cart", callback_data="cart:view")],
     ])
 
 
@@ -237,7 +249,13 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         total = sum(i["quantity"] * i["unit_price"] for i in cart)
         count = sum(i["quantity"] for i in cart)
         label = f"{item['name']} ({customization})" if customization else item["name"]
-        await query.answer(f"✅ Added {label}! Cart: {count} item(s) · ₹{total:.0f}", show_alert=False)
+        await query.answer(f"✅ {label} added to cart!", show_alert=False)
+        cart_text, _ = _format_cart(cart)
+        await query.edit_message_text(
+            cart_text,
+            parse_mode=ParseMode.HTML,
+            reply_markup=_cart_keyboard(True),
+        )
         return
 
     # ── Cart actions ──
@@ -266,9 +284,19 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         if not cart:
             await query.edit_message_text("Your cart is empty!", reply_markup=_cart_keyboard(False))
             return
-        text, total = _format_cart(cart)
-        text += "\n\n📝 <i>Reply with your pickup time and any notes.\nE.g. \"3pm\" or \"3:30pm, no nuts please\"</i>"
-        await query.edit_message_text(text, parse_mode=ParseMode.HTML)
+        text, _ = _format_cart(cart)
+        text += "\n\n🕐 <b>When would you like to pick up?</b>"
+        await query.edit_message_text(text, parse_mode=ParseMode.HTML, reply_markup=_pickup_keyboard())
+        return
+
+    if data.startswith("order:pickup:"):
+        slot = data.split(":")[-1]
+        pickup_map = {"asap": "ASAP", "30min": "30 minutes", "1hour": "1 hour"}
+        pickup_time = pickup_map.get(slot, "ASAP")
+        result = await place_order_for_user(telegram_id, pickup_time=pickup_time)
+        await query.edit_message_text(result, parse_mode=ParseMode.HTML, reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("🍽️ Order More", callback_data="menu:categories")],
+        ]))
         return
 
     if data == "chat:open":
