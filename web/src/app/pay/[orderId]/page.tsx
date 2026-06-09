@@ -46,7 +46,7 @@ export default function PaymentPage() {
         setStage("ready");
       })
       .catch(() => setStage("error"));
-  }, [orderId]);
+  }, [token]);
 
   const handlePay = useCallback(() => {
     if (!order || !scriptReady) return;
