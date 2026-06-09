@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { LayoutDashboard, ShoppingBag, UtensilsCrossed, ChefHat, LogOut } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, UtensilsCrossed, ChefHat, LogOut, QrCode } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { clearAdminKey } from "@/lib/auth";
 
@@ -11,6 +11,7 @@ const navItems = [
   { href: "/dashboard",        label: "Dashboard", icon: LayoutDashboard, desc: "Overview" },
   { href: "/dashboard/orders", label: "Orders",    icon: ShoppingBag,     desc: "Manage orders" },
   { href: "/dashboard/menu",   label: "Menu",      icon: UtensilsCrossed, desc: "Items & pricing" },
+  { href: "/dashboard/qr",     label: "QR Code",   icon: QrCode,          desc: "Generate & download" },
 ];
 
 export default function Sidebar() {
