@@ -2,8 +2,8 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Package, User, Clock, FileText, ChevronRight } from "lucide-react";
-import { getOrders, updateOrderStatus, type Order, type OrderStatus, ORDER_STATUSES } from "@/lib/api";
+import { Search, Package, User, Clock, FileText, ChevronRight, CreditCard } from "lucide-react";
+import { getOrders, updateOrderStatus, type Order, type OrderStatus, type PaymentStatus, ORDER_STATUSES } from "@/lib/api";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import StatusBadge from "@/components/StatusBadge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -23,6 +23,22 @@ const NEXT: Record<string, OrderStatus[]> = {
   PICKED_UP: [],
   CANCELLED: [],
 };
+
+const PAYMENT_STYLES: Record<PaymentStatus, { bg: string; color: string; label: string }> = {
+  PAID:    { bg: "rgba(74,222,128,0.12)", color: "#4ade80", label: "Paid" },
+  PENDING: { bg: "rgba(250,204,21,0.12)", color: "#facc15", label: "Unpaid" },
+  FAILED:  { bg: "rgba(248,113,113,0.12)", color: "#f87171", label: "Failed" },
+};
+
+function PaymentBadge({ status }: { status: PaymentStatus }) {
+  const s = PAYMENT_STYLES[status] ?? PAYMENT_STYLES.PENDING;
+  return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold"
+      style={{ background: s.bg, color: s.color }}>
+      <CreditCard className="w-2.5 h-2.5" />{s.label}
+    </span>
+  );
+}
 
 function LiveBadge({ lastUpdated }: { lastUpdated: Date }) {
   return (
@@ -161,9 +177,9 @@ export default function OrdersPage() {
         {/* Table head */}
         <div className="grid grid-cols-12 gap-3 px-6 py-3"
           style={{ borderBottom:"1px solid var(--border)", background:"var(--surface-2)" }}>
-          {["Order", "Customer", "Items", "Date", "Amount", "Status", ""].map((h, i) => (
+          {["Order", "Customer", "Items", "Date", "Amount", "Payment", "Status"].map((h, i) => (
             <div key={i} className={`text-[10px] font-semibold uppercase tracking-widest ${
-              i===0?"col-span-2":i===1?"col-span-2":i===2?"col-span-2":i===3?"col-span-2":i===4?"col-span-2":i===5?"col-span-1":"col-span-1"
+              i===0?"col-span-2":i===1?"col-span-2":i===2?"col-span-1":i===3?"col-span-2":i===4?"col-span-2":i===5?"col-span-2":"col-span-1"
             }`} style={{ color:"var(--text-muted)" }}>
               {h}
             </div>
@@ -234,10 +250,11 @@ export default function OrdersPage() {
                     {formatCurrency(order.total_amount)}
                   </span>
                 </div>
-                <div className="col-span-1 flex items-center">
-                  <StatusBadge status={order.status} />
+                <div className="col-span-2 flex items-center">
+                  <PaymentBadge status={(order.payment_status ?? "PENDING") as PaymentStatus} />
                 </div>
-                <div className="col-span-1 flex items-center justify-end">
+                <div className="col-span-1 flex items-center gap-2">
+                  <StatusBadge status={order.status} />
                   <ChevronRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color:"var(--text-muted)" }} />
                 </div>
               </motion.div>
@@ -269,7 +286,15 @@ export default function OrdersPage() {
                   <p className="text-xl font-bold font-serif" style={{ color:"#e8a045" }}>
                     {formatCurrency(selected.total_amount)}
                   </p>
-                  <StatusBadge status={selected.status} />
+                  <div className="flex items-center gap-2 mt-1.5">
+                    <StatusBadge status={selected.status} />
+                    <PaymentBadge status={(selected.payment_status ?? "PENDING") as PaymentStatus} />
+                  </div>
+                  {selected.razorpay_payment_id && (
+                    <p className="text-[10px] mt-1.5 font-mono truncate" style={{ color:"var(--text-muted)" }}>
+                      {selected.razorpay_payment_id}
+                    </p>
+                  )}
                 </div>
               </div>
 

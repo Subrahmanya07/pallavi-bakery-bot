@@ -1,10 +1,12 @@
 from google.adk.tools import ToolContext
 
+from app.config import get_settings
 from app.database.repositories.menu_repo import MenuRepository
 from app.database.repositories.order_repo import OrderRepository
 from app.database.repositories.session_repo import SessionRepository
 from app.database.repositories.user_repo import UserRepository
 from app.models.order import CartItem, OrderCreate
+from app.services.payment_service import create_razorpay_order
 
 _menu_repo = MenuRepository()
 _order_repo = OrderRepository()
@@ -127,17 +129,27 @@ async def place_order_for_user(
     await _session_repo.clear_cart(telegram_id)
     await _user_repo.increment_order_count(telegram_id)
 
+    # Create Razorpay order and attach to DB order
+    payment_url = ""
+    try:
+        rzp_order_id = create_razorpay_order(total, order["order_number"])
+        await _order_repo.set_razorpay_order(order["_id"], rzp_order_id)
+        frontend_url = get_settings().frontend_url.rstrip("/")
+        payment_url = f"\n\n💳 <b>Complete your payment:</b>\n<a href=\"{frontend_url}/pay/{order['_id']}\">Pay ₹{total:.0f} Now →</a>"
+    except Exception:
+        payment_url = ""  # Payment link failed — order still placed, pay at counter
+
     summary = ", ".join(f"{i['name']} ×{i['quantity']}" for i in cart)
     pickup_line = f"\nPickup time: {pickup_time}" if pickup_time else ""
 
     return (
-        f"✅ Order placed successfully!\n\n"
-        f"Order #: {order['order_number']}\n"
+        f"✅ Order placed!\n\n"
+        f"Order #: <b>{order['order_number']}</b>\n"
         f"Items: {summary}\n"
         f"Total: ₹{total:.0f}"
-        f"{pickup_line}\n\n"
-        f"We'll confirm your order shortly. "
-        f"Use your order number to track status anytime!"
+        f"{pickup_line}"
+        f"{payment_url}\n\n"
+        f"Use your order number to track status anytime."
     )
 
 

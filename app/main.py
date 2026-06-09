@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes.admin import router as admin_router
 from app.api.routes.health import router as health_router
+from app.api.routes.payment import router as payment_router
 from app.api.routes.webhook import router as webhook_router
 from app.bot.setup import setup_bot, shutdown_bot
 from app.config import get_settings
@@ -36,4 +37,5 @@ app.add_middleware(
 )
 app.include_router(health_router)
 app.include_router(webhook_router)
+app.include_router(payment_router)
 app.include_router(admin_router)

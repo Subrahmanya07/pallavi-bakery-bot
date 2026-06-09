@@ -30,6 +30,8 @@ export interface StatusHistory {
   changed_by: string;
 }
 
+export type PaymentStatus = "PENDING" | "PAID" | "FAILED";
+
 export interface Order {
   id: string;
   order_number: string;
@@ -38,6 +40,9 @@ export interface Order {
   items: OrderItem[];
   total_amount: number;
   status: string;
+  payment_status: PaymentStatus;
+  razorpay_order_id?: string | null;
+  razorpay_payment_id?: string | null;
   pickup_time?: string | null;
   notes?: string | null;
   created_at: string;

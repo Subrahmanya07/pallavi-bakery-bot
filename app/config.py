@@ -23,6 +23,12 @@ class Settings(BaseSettings):
     admin_api_key: str
     env: str = "development"
     dashboard_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
+    frontend_url: str = "http://localhost:3000"
+
+    # Razorpay
+    razorpay_key_id: str = ""
+    razorpay_key_secret: str = ""
+    razorpay_webhook_secret: str = ""
 
     def get_admin_ids(self) -> list[int]:
         """Return parsed list of admin Telegram IDs."""

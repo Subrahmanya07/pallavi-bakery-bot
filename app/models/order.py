@@ -5,12 +5,18 @@ from pydantic import BaseModel, Field
 
 
 class OrderStatus(StrEnum):
-    PENDING = "PENDING"
+    PENDING   = "PENDING"
     CONFIRMED = "CONFIRMED"
     PREPARING = "PREPARING"
-    READY = "READY"
+    READY     = "READY"
     PICKED_UP = "PICKED_UP"
     CANCELLED = "CANCELLED"
+
+
+class PaymentStatus(StrEnum):
+    PENDING = "PENDING"
+    PAID    = "PAID"
+    FAILED  = "FAILED"
 
 
 class CartItem(BaseModel):
@@ -35,6 +41,9 @@ class Order(BaseModel):
     items: list[CartItem]
     total_amount: float
     status: OrderStatus
+    payment_status: PaymentStatus = PaymentStatus.PENDING
+    razorpay_order_id: str | None = None
+    razorpay_payment_id: str | None = None
     pickup_time: str | None = None
     notes: str | None = None
     created_at: datetime
