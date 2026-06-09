@@ -1,5 +1,6 @@
 import hashlib
 import hmac
+import secrets
 
 import razorpay
 
@@ -11,8 +12,10 @@ def _client() -> razorpay.Client:
     return razorpay.Client(auth=(s.razorpay_key_id, s.razorpay_key_secret))
 
 
-def create_razorpay_order(amount_rupees: float, receipt: str) -> str:
-    """Create a Razorpay order and return the razorpay_order_id."""
+def create_razorpay_order(amount_rupees: float, receipt: str) -> tuple[str, str]:
+    """Create a Razorpay order. Returns (razorpay_order_id, payment_token).
+    payment_token is a 32-byte URL-safe token used as the capability URL — never expose the DB order_id.
+    """
     amount_paise = int(round(amount_rupees * 100))
     order = _client().order.create({
         "amount": amount_paise,
@@ -20,7 +23,8 @@ def create_razorpay_order(amount_rupees: float, receipt: str) -> str:
         "receipt": receipt,
         "payment_capture": 1,
     })
-    return order["id"]
+    payment_token = secrets.token_urlsafe(32)
+    return order["id"], payment_token
 
 
 def verify_payment_signature(razorpay_order_id: str, razorpay_payment_id: str, signature: str) -> bool:
@@ -37,7 +41,7 @@ def verify_payment_signature(razorpay_order_id: str, razorpay_payment_id: str, s
 
 
 def verify_webhook_signature(body: bytes, signature: str) -> bool:
-    """Verify server-to-server webhook signature from Razorpay."""
+    """Verify server-to-server webhook from Razorpay."""
     secret = get_settings().razorpay_webhook_secret
     if not secret:
         return False

@@ -6,16 +6,23 @@ const BACKEND_URL = (
   "http://localhost:8000"
 ).replace(/\/$/, "");
 
+const SAFE_SEGMENT = /^[A-Za-z0-9_\-]+$/;
+
 function buildUrl(path: string[], search: string): string {
-  const url = new URL(`/payment/${path.join("/")}`, BACKEND_URL);
+  for (const seg of path) {
+    if (!SAFE_SEGMENT.test(seg)) return "";
+  }
+  const url = new URL(`/payment/${path.map(encodeURIComponent).join("/")}`, BACKEND_URL);
+  if (!url.pathname.startsWith("/payment/")) return "";
   url.search = search;
   return url.toString();
 }
 
 async function proxy(request: NextRequest, path: string[]): Promise<NextResponse> {
   const url = buildUrl(path, request.nextUrl.search);
-  const headers = new Headers({ "content-type": "application/json" });
+  if (!url) return NextResponse.json({ error: "Bad request" }, { status: 400 });
 
+  const headers = new Headers({ "content-type": "application/json" });
   const init: RequestInit = { method: request.method, headers };
   if (request.method !== "GET" && request.method !== "HEAD") {
     init.body = await request.text();

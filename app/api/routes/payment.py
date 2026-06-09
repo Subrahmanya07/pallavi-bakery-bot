@@ -18,18 +18,16 @@ class VerifyPaymentRequest(BaseModel):
     razorpay_signature: str
 
 
-@router.get("/order/{order_id}")
-async def get_payment_order(order_id: str):
-    """Return order summary + razorpay_order_id for the checkout page."""
-    order = await _order_repo.get_by_id(order_id)
+@router.get("/order/{payment_token}")
+async def get_payment_order(payment_token: str):
+    """Return order summary for the checkout page — looked up by capability token, not DB ID."""
+    order = await _order_repo.get_by_payment_token(payment_token)
     if not order:
-        raise HTTPException(status_code=404, detail="Order not found")
+        raise HTTPException(status_code=404, detail="Payment link not found or expired")
     if order.get("payment_status") == "PAID":
         raise HTTPException(status_code=409, detail="Order already paid")
     return {
-        "order_id": order_id,
         "order_number": order["order_number"],
-        "customer_name": order["customer_name"],
         "items": order["items"],
         "total_amount": order["total_amount"],
         "razorpay_order_id": order.get("razorpay_order_id"),

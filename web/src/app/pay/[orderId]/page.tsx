@@ -14,9 +14,7 @@ interface OrderItem {
 }
 
 interface PaymentOrder {
-  order_id: string;
   order_number: string;
-  customer_name: string;
   items: OrderItem[];
   total_amount: number;
   razorpay_order_id: string;
@@ -33,13 +31,13 @@ declare global {
 type Stage = "loading" | "ready" | "processing" | "success" | "failed" | "error" | "already_paid";
 
 export default function PaymentPage() {
-  const { orderId } = useParams<{ orderId: string }>();
+  const { orderId: token } = useParams<{ orderId: string }>();
   const [order, setOrder] = useState<PaymentOrder | null>(null);
   const [stage, setStage] = useState<Stage>("loading");
   const [scriptReady, setScriptReady] = useState(false);
 
   useEffect(() => {
-    fetch(`/api/payment/order/${orderId}`)
+    fetch(`/api/payment/order/${token}`)
       .then(async (res) => {
         if (res.status === 409) { setStage("already_paid"); return; }
         if (!res.ok) { setStage("error"); return; }
@@ -61,7 +59,6 @@ export default function PaymentPage() {
       name: "Pallavi Bakery",
       description: order.order_number,
       order_id: order.razorpay_order_id,
-      prefill: { name: order.customer_name },
       theme: { color: "#e8a045" },
       handler: async (response: {
         razorpay_payment_id: string;

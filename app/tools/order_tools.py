@@ -132,10 +132,10 @@ async def place_order_for_user(
     # Create Razorpay order and attach to DB order
     payment_url = ""
     try:
-        rzp_order_id = create_razorpay_order(total, order["order_number"])
-        await _order_repo.set_razorpay_order(order["_id"], rzp_order_id)
+        rzp_order_id, payment_token = create_razorpay_order(total, order["order_number"])
+        await _order_repo.set_razorpay_order(order["_id"], rzp_order_id, payment_token)
         frontend_url = get_settings().frontend_url.rstrip("/")
-        payment_url = f"\n\n💳 <b>Complete your payment:</b>\n<a href=\"{frontend_url}/pay/{order['_id']}\">Pay ₹{total:.0f} Now →</a>"
+        payment_url = f"\n\n💳 <b>Complete your payment:</b>\n<a href=\"{frontend_url}/pay/{payment_token}\">Pay ₹{total:.0f} Now →</a>"
     except Exception:
         payment_url = ""  # Payment link failed — order still placed, pay at counter
 

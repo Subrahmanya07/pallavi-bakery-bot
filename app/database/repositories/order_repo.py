@@ -147,11 +147,21 @@ class OrderRepository:
         await self.update_status(order_number, OrderStatus.CANCELLED, f"customer:{telegram_id}")
         return True, "Order cancelled successfully."
 
-    async def set_razorpay_order(self, order_id: str, razorpay_order_id: str) -> None:
+    async def set_razorpay_order(self, order_id: str, razorpay_order_id: str, payment_token: str) -> None:
         await self.collection.update_one(
             {"_id": ObjectId(order_id)},
-            {"$set": {"razorpay_order_id": razorpay_order_id, "updated_at": datetime.now(timezone.utc)}},
+            {"$set": {
+                "razorpay_order_id": razorpay_order_id,
+                "payment_token": payment_token,
+                "updated_at": datetime.now(timezone.utc),
+            }},
         )
+
+    async def get_by_payment_token(self, payment_token: str) -> dict | None:
+        order = await self.collection.find_one({"payment_token": payment_token})
+        if order:
+            order["_id"] = str(order["_id"])
+        return order
 
     async def get_by_razorpay_order_id(self, razorpay_order_id: str) -> dict | None:
         order = await self.collection.find_one({"razorpay_order_id": razorpay_order_id})
@@ -182,4 +192,5 @@ class OrderRepository:
         await self.collection.create_index("telegram_user_id")
         await self.collection.create_index("status")
         await self.collection.create_index("razorpay_order_id", sparse=True)
+        await self.collection.create_index("payment_token", sparse=True, unique=True)
         await self.collection.create_index([("created_at", -1)])
