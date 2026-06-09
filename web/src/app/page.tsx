@@ -3,7 +3,6 @@
 import { motion } from "framer-motion";
 import { QRCodeSVG } from "qrcode.react";
 import { ChefHat, MessageCircle, Smartphone, Globe, ShoppingBag } from "lucide-react";
-import { useCallback } from "react";
 
 const BOT_URL = "https://t.me/pallavi_bakery_order_bot";
 const BOT_WEB_URL = "https://web.telegram.org/k/#@pallavi_bakery_order_bot";
@@ -14,18 +13,7 @@ const FEATURES = [
   { icon: ChefHat, label: "Track your order" },
 ];
 
-function isMobile() {
-  return /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
-}
-
 export default function LandingPage() {
-  const openBot = useCallback(() => {
-    // Mobile: t.me handles app-open or shows a clean "Open" button
-    // Desktop: skip t.me entirely — go straight to Telegram Web
-    const url = isMobile() ? BOT_URL : BOT_WEB_URL;
-    window.open(url, "_blank", "noopener,noreferrer");
-  }, []);
-
   return (
     <div
       className="min-h-screen flex flex-col items-center justify-center p-6"
@@ -106,25 +94,40 @@ export default function LandingPage() {
         {/* Divider */}
         <div style={{ height: 1, background: "rgba(210,150,60,0.10)", margin: "0 24px" }} />
 
-        {/* CTA */}
-        <div className="px-6 py-6">
-          <button
-            onClick={openBot}
+        {/* CTA — two buttons: one for app, one for web */}
+        <div className="px-6 py-6 flex flex-col gap-3">
+          <a
+            href={BOT_URL}
+            target="_blank"
+            rel="noopener noreferrer"
             className="flex items-center justify-center gap-3 w-full rounded-2xl text-white font-semibold text-sm active:scale-95 transition-transform"
             style={{
               background: "linear-gradient(135deg, #e8a045 0%, #c4622d 100%)",
-              boxShadow: "0 6px 24px rgba(232,160,69,0.35)",
-              padding: "14px 0",
-              border: "none",
-              cursor: "pointer",
+              boxShadow: "0 6px 24px rgba(232,160,69,0.25)",
+              padding: "13px 0",
+              textDecoration: "none",
             }}
           >
-            <MessageCircle className="w-5 h-5" />
-            Start ordering on Telegram
-          </button>
-          <p className="text-center text-[11px] mt-3" style={{ color: "#3a342c" }}>
-            Opens Telegram app on mobile · Telegram Web on desktop
-          </p>
+            <Smartphone className="w-4 h-4" />
+            Open in Telegram App
+          </a>
+
+          <a
+            href={BOT_WEB_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-3 w-full rounded-2xl font-semibold text-sm active:scale-95 transition-transform"
+            style={{
+              background: "rgba(232,160,69,0.08)",
+              border: "1px solid rgba(232,160,69,0.25)",
+              color: "#e8a045",
+              padding: "13px 0",
+              textDecoration: "none",
+            }}
+          >
+            <Globe className="w-4 h-4" />
+            Open in Browser (no app needed)
+          </a>
         </div>
       </motion.div>
 
