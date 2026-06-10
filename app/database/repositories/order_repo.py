@@ -3,7 +3,7 @@ from datetime import date as date_type, datetime, timedelta, timezone
 from bson import ObjectId
 
 from app.database.connection import get_database
-from app.models.order import OrderCreate, OrderStatus
+from app.models.order import OrderCreate, OrderStatus, PaymentStatus
 
 
 class OrderRepository:
@@ -30,6 +30,8 @@ class OrderRepository:
             "items": [i.model_dump() for i in order.items],
             "total_amount": order.total_amount,
             "status": OrderStatus.PENDING,
+            "payment_method": order.payment_method,
+            "payment_status": PaymentStatus.COD if order.payment_method == "cod" else PaymentStatus.PENDING,
             "pickup_time": order.pickup_time,
             "notes": order.notes,
             "created_at": now,

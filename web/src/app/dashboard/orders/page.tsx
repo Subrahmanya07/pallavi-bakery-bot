@@ -28,6 +28,7 @@ const PAYMENT_STYLES: Record<PaymentStatus, { bg: string; color: string; label: 
   PAID:    { bg: "rgba(74,222,128,0.12)", color: "#4ade80", label: "Paid" },
   PENDING: { bg: "rgba(250,204,21,0.12)", color: "#facc15", label: "Unpaid" },
   FAILED:  { bg: "rgba(248,113,113,0.12)", color: "#f87171", label: "Failed" },
+  COD:     { bg: "rgba(96,165,250,0.12)", color: "#60a5fa", label: "Pay at Pickup" },
 };
 
 function PaymentBadge({ status }: { status: PaymentStatus }) {

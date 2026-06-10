@@ -103,11 +103,18 @@ async def place_order_for_user(
     telegram_id: int,
     pickup_time: str = "",
     notes: str = "",
+    payment_method: str = "online",
 ) -> str:
-    """Core order placement logic — callable from both the ADK tool and button handlers."""
+    """Core order placement logic — callable from both the ADK tool and button handlers.
+
+    payment_method: "online" generates a Razorpay payment link; "cod" marks the
+    order to be paid in person at pickup.
+    """
     cart = await _session_repo.get_cart(telegram_id)
     if not cart:
         return "Your cart is empty. Add items before placing an order."
+
+    payment_method = "cod" if payment_method == "cod" else "online"
 
     user = await _user_repo.get_by_telegram_id(telegram_id)
     customer_name = user["first_name"] if user else "Customer"
@@ -123,21 +130,25 @@ async def place_order_for_user(
             total_amount=round(total, 2),
             pickup_time=pickup_time.strip() or None,
             notes=notes.strip() or None,
+            payment_method=payment_method,
         )
     )
 
     await _session_repo.clear_cart(telegram_id)
     await _user_repo.increment_order_count(telegram_id)
 
-    # Create Razorpay order and attach to DB order
-    payment_url = ""
-    try:
-        rzp_order_id, payment_token = create_razorpay_order(total, order["order_number"])
-        await _order_repo.set_razorpay_order(order["_id"], rzp_order_id, payment_token)
-        frontend_url = get_settings().frontend_url.rstrip("/")
-        payment_url = f"\n\n💳 <b>Complete your payment:</b>\n<a href=\"{frontend_url}/pay/{payment_token}\">Pay ₹{total:.0f} Now →</a>"
-    except Exception:
-        payment_url = ""  # Payment link failed — order still placed, pay at counter
+    # Create Razorpay order and attach to DB order (online payment only)
+    payment_line = ""
+    if payment_method == "online":
+        try:
+            rzp_order_id, payment_token = create_razorpay_order(total, order["order_number"])
+            await _order_repo.set_razorpay_order(order["_id"], rzp_order_id, payment_token)
+            frontend_url = get_settings().frontend_url.rstrip("/")
+            payment_line = f"\n\n💳 <b>Complete your payment:</b>\n<a href=\"{frontend_url}/pay/{payment_token}\">Pay ₹{total:.0f} Now →</a>"
+        except Exception:
+            payment_line = ""  # Payment link failed — order still placed, pay at counter
+    else:
+        payment_line = f"\n\n💵 <b>Pay ₹{total:.0f} at pickup.</b>"
 
     summary = ", ".join(f"{i['name']} ×{i['quantity']}" for i in cart)
     pickup_line = f"\nPickup time: {pickup_time}" if pickup_time else ""
@@ -148,7 +159,7 @@ async def place_order_for_user(
         f"Items: {summary}\n"
         f"Total: ₹{total:.0f}"
         f"{pickup_line}"
-        f"{payment_url}\n\n"
+        f"{payment_line}\n\n"
         f"Use your order number to track status anytime."
     )
 
@@ -156,12 +167,14 @@ async def place_order_for_user(
 async def place_order(
     pickup_time: str = "",
     notes: str = "",
+    payment_method: str = "online",
     tool_context: ToolContext = None,
 ) -> str:
+    """payment_method: "online" to pay now via Razorpay, or "cod" to pay at pickup."""
     telegram_id = _get_telegram_id(tool_context)
     if not telegram_id:
         return "Session error. Please send /start to restart."
-    return await place_order_for_user(telegram_id, pickup_time, notes)
+    return await place_order_for_user(telegram_id, pickup_time, notes, payment_method)
 
 
 async def cancel_order(

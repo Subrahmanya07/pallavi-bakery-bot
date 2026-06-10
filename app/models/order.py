@@ -17,6 +17,7 @@ class PaymentStatus(StrEnum):
     PENDING = "PENDING"
     PAID    = "PAID"
     FAILED  = "FAILED"
+    COD     = "COD"  # pay in person at pickup
 
 
 class CartItem(BaseModel):
@@ -60,3 +61,4 @@ class OrderCreate(BaseModel):
     total_amount: float
     pickup_time: str | None = None
     notes: str | None = None
+    payment_method: str = "online"  # "online" or "cod" (pay at pickup)

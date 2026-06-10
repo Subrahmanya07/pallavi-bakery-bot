@@ -31,6 +31,8 @@ CATEGORY_BULLETS = {
     "cookies": "🍪", "drinks": "☕",
 }
 
+PICKUP_LABELS = {"asap": "ASAP", "30min": "30 minutes", "1hour": "1 hour"}
+
 
 # ── Keyboards ─────────────────────────────────────────────────────────────────
 
@@ -105,6 +107,14 @@ def _pickup_keyboard() -> InlineKeyboardMarkup:
             InlineKeyboardButton("🕑 1 hour",  callback_data="order:pickup:1hour"),
         ],
         [InlineKeyboardButton("🛒 Back to Cart", callback_data="cart:view")],
+    ])
+
+
+def _payment_keyboard(pickup_slot: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("💳 Pay Online Now", callback_data=f"order:pay:online:{pickup_slot}")],
+        [InlineKeyboardButton("💵 Pay at Pickup",  callback_data=f"order:pay:cod:{pickup_slot}")],
+        [InlineKeyboardButton("🛒 Back to Cart",   callback_data="cart:view")],
     ])
 
 
@@ -291,9 +301,18 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
     if data.startswith("order:pickup:"):
         slot = data.split(":")[-1]
-        pickup_map = {"asap": "ASAP", "30min": "30 minutes", "1hour": "1 hour"}
-        pickup_time = pickup_map.get(slot, "ASAP")
-        result = await place_order_for_user(telegram_id, pickup_time=pickup_time)
+        pickup_label = PICKUP_LABELS.get(slot, "ASAP")
+        await query.edit_message_text(
+            f"🕐 Pickup: <b>{pickup_label}</b>\n\n💰 <b>How would you like to pay?</b>",
+            parse_mode=ParseMode.HTML,
+            reply_markup=_payment_keyboard(slot),
+        )
+        return
+
+    if data.startswith("order:pay:"):
+        _, _, method, slot = data.split(":", 3)
+        pickup_time = PICKUP_LABELS.get(slot, "ASAP")
+        result = await place_order_for_user(telegram_id, pickup_time=pickup_time, payment_method=method)
         await query.edit_message_text(result, parse_mode=ParseMode.HTML, reply_markup=InlineKeyboardMarkup([
             [InlineKeyboardButton("🍽️ Order More", callback_data="menu:categories")],
         ]))

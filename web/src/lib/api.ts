@@ -30,7 +30,7 @@ export interface StatusHistory {
   changed_by: string;
 }
 
-export type PaymentStatus = "PENDING" | "PAID" | "FAILED";
+export type PaymentStatus = "PENDING" | "PAID" | "FAILED" | "COD";
 
 export interface Order {
   id: string;
