@@ -12,6 +12,25 @@ router = APIRouter(prefix="/payment")
 _order_repo = OrderRepository()
 
 
+async def _notify_payment_received(order: dict) -> None:
+    """Tell the customer on Telegram that their payment went through."""
+    from app.bot.setup import get_application
+
+    try:
+        await get_application().bot.send_message(
+            chat_id=order["telegram_user_id"],
+            text=(
+                f"✅ <b>Payment received!</b>\n\n"
+                f"Order #: <b>{order['order_number']}</b>\n"
+                f"Amount: ₹{order['total_amount']:.0f}\n\n"
+                f"Thanks! Your order is confirmed and being prepared. 🎉"
+            ),
+            parse_mode="HTML",
+        )
+    except Exception:
+        pass
+
+
 class VerifyPaymentRequest(BaseModel):
     razorpay_order_id: str
     razorpay_payment_id: str
@@ -46,9 +65,14 @@ async def verify_payment(body: VerifyPaymentRequest):
     ):
         raise HTTPException(status_code=400, detail="Invalid payment signature")
 
-    ok = await _order_repo.mark_payment_paid(body.razorpay_order_id, body.razorpay_payment_id)
-    if not ok:
+    order = await _order_repo.get_by_razorpay_order_id(body.razorpay_order_id)
+    if not order:
         raise HTTPException(status_code=404, detail="Order not found")
+
+    already_paid = order.get("payment_status") == "PAID"
+    await _order_repo.mark_payment_paid(body.razorpay_order_id, body.razorpay_payment_id)
+    if not already_paid:
+        await _notify_payment_received(order)
     return {"ok": True}
 
 
@@ -67,7 +91,10 @@ async def razorpay_webhook(request: Request):
     rzp_payment_id = entity.get("id")
 
     if event.get("event") == "payment.captured" and rzp_order_id:
-        await _order_repo.mark_payment_paid(rzp_order_id, rzp_payment_id)
+        order = await _order_repo.get_by_razorpay_order_id(rzp_order_id)
+        if order and order.get("payment_status") != "PAID":
+            await _order_repo.mark_payment_paid(rzp_order_id, rzp_payment_id)
+            await _notify_payment_received(order)
     elif event.get("event") == "payment.failed" and rzp_order_id:
         await _order_repo.mark_payment_failed(rzp_order_id)
 

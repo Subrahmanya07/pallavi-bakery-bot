@@ -4,7 +4,25 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Script from "next/script";
 import { motion } from "framer-motion";
-import { ChefHat, CheckCircle, XCircle, Loader2, ShoppingBag } from "lucide-react";
+import { ChefHat, CheckCircle, XCircle, Loader2, ShoppingBag, Send } from "lucide-react";
+
+const BOT_URL = "https://t.me/pallavi_bakery_order_bot";
+
+function ReturnToTelegramButton() {
+  return (
+    <a
+      href={BOT_URL}
+      className="mt-2 w-full flex items-center justify-center gap-2 rounded-2xl text-white font-semibold text-sm transition-all"
+      style={{
+        background: "linear-gradient(135deg, #e8a045, #c4622d)",
+        boxShadow: "0 6px 24px rgba(232,160,69,0.30)",
+        padding: "14px 0",
+      }}
+    >
+      <Send className="w-4 h-4" /> Return to Telegram
+    </a>
+  );
+}
 
 interface OrderItem {
   name: string;
@@ -137,7 +155,8 @@ export default function PaymentPage() {
               <div className="flex flex-col items-center gap-3 py-8 text-center">
                 <CheckCircle className="w-10 h-10" style={{ color: "#4ade80" }} />
                 <p className="text-sm font-semibold text-white">Already paid!</p>
-                <p className="text-xs" style={{ color: "#7a7060" }}>This order has already been paid. Thank you!</p>
+                <p className="text-xs mb-2" style={{ color: "#7a7060" }}>This order has already been paid. Thank you!</p>
+                <ReturnToTelegramButton />
               </div>
             )}
 
@@ -147,10 +166,11 @@ export default function PaymentPage() {
                   <CheckCircle className="w-14 h-14" style={{ color: "#4ade80" }} />
                 </motion.div>
                 <p className="text-lg font-bold text-white">Payment successful!</p>
-                <p className="text-xs" style={{ color: "#7a7060" }}>
+                <p className="text-xs mb-2" style={{ color: "#7a7060" }}>
                   {order?.order_number} · ₹{order?.total_amount.toFixed(0)}<br />
-                  We'll confirm your order shortly.
+                  We've sent a confirmation on Telegram.
                 </p>
+                <ReturnToTelegramButton />
               </div>
             )}
 
